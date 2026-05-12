@@ -5,7 +5,18 @@ from datetime import datetime
 
 from werkzeug.security import check_password_hash
 
-from db import init_db, increment_counter, get_counter, get_user_by_username, create_user
+from db import (
+    init_db, 
+    increment_counter, 
+    get_counter, 
+    get_user_by_username, 
+    create_user,
+    get_user_by_id,
+    get_all_users,
+    deactivate_user,
+    activate_user,
+    delete_user
+)
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key-change-in-production"
@@ -25,17 +36,9 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_data = get_user_by_username("placeholder")  # placeholder to get connection working
-    # We need to fetch the actual user by ID
-    from db import get_connection
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, username FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if row:
-        return User(row[0], row[1])
+    user_data = get_user_by_id(int(user_id))
+    if user_data:
+        return User(user_data["id"], user_data["username"])
     return None
 
 
@@ -56,7 +59,7 @@ messages = [
 @app.route("/")
 @login_required
 def index():
-    count = get_counter()
+    count = get_counter(current_user.id)
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return render_template("index.html", count=count, current_time=current_time)
 
@@ -64,11 +67,23 @@ def index():
 @app.route("/click", methods=["POST"])
 @login_required
 def click():
-    count = increment_counter()
+    count = increment_counter(current_user.id)
     message = random.choice(messages)
+    # Return current server time for real-time display
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return jsonify({
         "count": count,
-        "message": message
+        "message": message,
+        "current_time": current_time
+    })
+
+
+@app.route("/api/time")
+@login_required
+def get_current_time():
+    """API endpoint to get current server time."""
+    return jsonify({
+        "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
 
@@ -114,6 +129,50 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("login"))
+
+
+@app.route("/users")
+@login_required
+def users_management():
+    """User management page - list all users."""
+    users = get_all_users()
+    return render_template("users.html", users=users)
+
+
+@app.route("/users/<int:user_id>/deactivate", methods=["POST"])
+@login_required
+def users_deactivate(user_id):
+    """Deactivate a user account."""
+    if deactivate_user(user_id):
+        flash("Пользователь деактивирован", "success")
+    else:
+        flash("Ошибка при деактивации пользователя", "error")
+    return redirect(url_for("users_management"))
+
+
+@app.route("/users/<int:user_id>/activate", methods=["POST"])
+@login_required
+def users_activate(user_id):
+    """Activate a user account."""
+    if activate_user(user_id):
+        flash("Пользователь активирован", "success")
+    else:
+        flash("Ошибка при активации пользователя", "error")
+    return redirect(url_for("users_management"))
+
+
+@app.route("/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+def users_delete(user_id):
+    """Delete a user account."""
+    # Prevent deleting yourself
+    if user_id == current_user.id:
+        flash("Нельзя удалить свою собственную учетную запись", "error")
+    elif delete_user(user_id):
+        flash("Пользователь удален", "success")
+    else:
+        flash("Ошибка при удалении пользователя", "error")
+    return redirect(url_for("users_management"))
 
 
 if __name__ == "__main__":
