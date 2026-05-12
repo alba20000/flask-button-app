@@ -2,6 +2,9 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import random
 from datetime import datetime
+
+from werkzeug.security import check_password_hash
+
 from db import init_db, increment_counter, get_counter, get_user_by_username, create_user
 
 app = Flask(__name__)
