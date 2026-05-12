@@ -19,6 +19,12 @@
             margin-bottom: 20px;
         }
 
+        #datetime {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
         .button {
             width: 150px;
             height: 150px;
@@ -33,15 +39,66 @@
         .button:hover {
             background: #45a049;
         }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .logout-btn, .manage-btn {
+            background: #f44336;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover, .manage-btn:hover {
+            background: #d32f2f;
+        }
+
+        .manage-btn {
+            background: #2196F3;
+        }
+
+        .manage-btn:hover {
+            background: #1976D2;
+        }
     </style>
 </head>
 <body>
 
+<div class="user-info">
+    <span>Пользователь: {{ current_user.username }}</span>
+    <a href="/users" class="manage-btn">Управление</a>
+    <a href="/logout" class="logout-btn">Выйти</a>
+</div>
+
+<div id="datetime">{{ current_time }}</div>
 <div id="counter">Нажатий: {{ count }}</div>
 
 <button class="button" onclick="handleClick()">ЖМИ</button>
 
 <script>
+    // Update time in real-time every second
+    function updateTime() {
+        fetch('/api/time')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('datetime').innerText = data.current_time;
+            })
+            .catch(err => console.error('Error fetching time:', err));
+    }
+
+    // Update time every second
+    setInterval(updateTime, 1000);
+
     async function handleClick() {
         const response = await fetch('/click', {
             method: 'POST'
@@ -50,6 +107,7 @@
         const data = await response.json();
 
         document.getElementById('counter').innerText = "Нажатий: " + data.count;
+        document.getElementById('datetime').innerText = data.current_time;
 
         alert(data.message);
     }
