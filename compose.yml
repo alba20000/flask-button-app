@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   app:
-    image: flask-button-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: flask-app
     restart: always
     ports:
