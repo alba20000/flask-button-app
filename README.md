@@ -1,4 +1,4 @@
-#Installation
+## Installation
 1. git clone this repo
 2. cd flask-button-app
 3. docker compose up -d
